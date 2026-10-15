@@ -52,6 +52,10 @@ cswap이 없으면 띠에 `cswap 미설치 install`이 뜹니다. `install`을 �
 | Linux | 명령 생성만 테스트, 실기기 미검증 |
 | Windows | 명령 생성만 테스트, 실기기 미검증 |
 
+## 변경 이력
+
+[CHANGELOG.md](CHANGELOG.md)
+
 ## 개발
 
 ```bash
