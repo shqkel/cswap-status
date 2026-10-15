@@ -4,6 +4,9 @@ export type Os = 'mac' | 'linux' | 'windows'
 export type Argv = readonly string[]
 
 const JOB = 'cswap-status.auto' // launchd 레이블
+// macOS 는 `launchctl submit -l X` 를 `local.X` 로 등록한다. 지울 때 둘 다 지운다
+// (안 지우면 OnDemand=false 라 pkill 해도 launchd 가 ~10초 뒤 다시 띄운다)
+const UNSUBMIT = `launchctl remove local.${JOB} 2>/dev/null; launchctl remove ${JOB} 2>/dev/null`
 const UNIT = 'cswap-status-auto' // systemd --user 유닛
 
 /** `OS` 환경변수와 `uname -s` 출력으로 운영체제를 정한다 */
@@ -67,8 +70,8 @@ export function watchCommands(os: Os, cswap: string): WatchCommands {
     const log = '"$HOME/Library/Logs/cswap-auto.log"'
     return {
       check,
-      start: sh(`launchctl remove ${JOB} 2>/dev/null; launchctl submit -l ${JOB} -o ${log} -e ${log} -- ${q(cswap)} auto; true`),
-      stop: sh(`launchctl remove ${JOB} 2>/dev/null; pkill -f 'cswap auto$'; true`),
+      start: sh(`${UNSUBMIT}; launchctl submit -l ${JOB} -o ${log} -e ${log} -- ${q(cswap)} auto; true`),
+      stop: sh(`${UNSUBMIT}; pkill -f 'cswap auto$'; true`),
     }
   }
   const log = '"${XDG_STATE_HOME:-$HOME/.local/state}/cswap-auto.log"'

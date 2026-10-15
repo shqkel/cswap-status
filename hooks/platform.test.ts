@@ -22,6 +22,8 @@ test('mac·linux 의 감시 명령은 자기 자신이 pgrep 패턴에 걸리지
     for (const argv of [c.check, c.start, c.stop]) expect(/cswap auto$/.test(argv.join(' '))).toBe(false)
   }
   expect(watchCommands('mac', '/x/cswap').start.join(' ')).toContain('launchctl submit')
+  // submit 은 local. 접두사로 등록된다: 그 레이블을 지워야 launchd 가 다시 띄우지 않는다
+  expect(watchCommands('mac', '/x/cswap').stop.join(' ')).toContain('launchctl remove local.cswap-status.auto')
   expect(watchCommands('linux', '/x/cswap').start.join(' ')).toContain('systemd-run --user')
 })
 
