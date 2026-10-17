@@ -32,6 +32,11 @@ export const NO_INSTALLER = 'uv 또는 pipx 가 필요합니다 — https://docs
 const sh = (script: string): Argv => ['/bin/sh', '-c', script]
 const ps = (script: string): Argv => ['powershell', '-NoProfile', '-NonInteractive', '-Command', script]
 const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
+/**
+ * launchd·systemd 는 로그인 셸의 PATH 를 물려받지 않는다(launchd 기본 PATH = /usr/bin:/bin:/usr/sbin:/sbin).
+ * 후보가 맨 이름 `cswap` 이면 거기서 못 찾아 launchd 가 EX_CONFIG(78)로 재시도만 반복한다 — 띄우기 전에 절대경로로 바꾼다.
+ */
+const RESOLVE = (cswap: string) => `C=$(command -v ${q(cswap)} 2>/dev/null || printf %s ${q(cswap)})`
 const psq = (s: string) => `'${s.replace(/'/g, "''")}'`
 
 /** Windows: `cswap auto` 로 끝나는 명령줄 (`--once`·`--dry-run` 은 제외) */
@@ -70,7 +75,7 @@ export function watchCommands(os: Os, cswap: string): WatchCommands {
     const log = '"$HOME/Library/Logs/cswap-auto.log"'
     return {
       check,
-      start: sh(`${UNSUBMIT}; launchctl submit -l ${JOB} -o ${log} -e ${log} -- ${q(cswap)} auto; true`),
+      start: sh(`${RESOLVE(cswap)}; ${UNSUBMIT}; launchctl submit -l ${JOB} -o ${log} -e ${log} -- "$C" auto; true`),
       stop: sh(`${UNSUBMIT}; pkill -f 'cswap auto$'; true`),
     }
   }
@@ -78,10 +83,10 @@ export function watchCommands(os: Os, cswap: string): WatchCommands {
   return {
     check,
     start: sh(
-      `systemctl --user reset-failed ${UNIT} 2>/dev/null; ` +
+      `${RESOLVE(cswap)}; systemctl --user reset-failed ${UNIT} 2>/dev/null; ` +
         `if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then ` +
-        `systemd-run --user --quiet --unit=${UNIT} -p Restart=on-failure ${q(cswap)} auto; ` +
-        `else mkdir -p "$(dirname ${log})"; nohup setsid ${q(cswap)} auto >>${log} 2>&1 </dev/null & fi; true`,
+        `systemd-run --user --quiet --unit=${UNIT} -p Restart=on-failure "$C" auto; ` +
+        `else mkdir -p "$(dirname ${log})"; nohup setsid "$C" auto >>${log} 2>&1 </dev/null & fi; true`,
     ),
     stop: sh(`systemctl --user stop ${UNIT} 2>/dev/null; pkill -f 'cswap auto$'; true`),
   }

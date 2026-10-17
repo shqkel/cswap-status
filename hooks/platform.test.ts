@@ -33,3 +33,12 @@ test('windows 감시 명령은 powershell 로 돈다', async () => {
   expect(c.start.join(' ')).toContain("Start-Process -FilePath 'C:\\Users\\a\\.local\\bin\\cswap.exe' -ArgumentList 'auto'")
   expect(c.stop.join(' ')).toContain('taskkill /T /F')
 })
+
+test('mac·linux 감시는 맨 이름 cswap 을 절대경로로 바꿔서 띄운다 (launchd PATH 에 ~/.local/bin 없음)', async () => {
+  for (const os of ['mac', 'linux'] as const) {
+    const start = watchCommands(os, 'cswap').start.join(' ')
+    expect(start).toContain("C=$(command -v 'cswap'")
+    expect(start).not.toContain("'cswap' auto")
+    expect(start).toContain('"$C" auto')
+  }
+})
